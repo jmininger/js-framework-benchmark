@@ -1,0 +1,9 @@
+{
+  "lerna": "2.0.0",
+  "packages": [
+    "frameworks/*",
+    "webdriver-ts",
+    "webdriver-ts-results"
+  ],
+  "version": "0.0.0"
+}
