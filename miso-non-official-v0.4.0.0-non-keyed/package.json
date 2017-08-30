@@ -4,8 +4,8 @@
   "description": "Miso GHCJS (Non official benchmark)",
   "main": "index.js",
   "scripts": {
-    "install": "stack setup",
-    "build-prod": "stack build && cp $(stack path --local-install-root)/bin/miso-ghcjs-exe.jsexe/all.js dist/"
+    "install": "echo NOP",
+    "build-prod": "echo NOP"
   },
   "keywords": [
     "Miso",
