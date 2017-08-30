@@ -1350,69 +1350,17 @@ function h$ghcjszmprimZCGHCJSziPrimziJSVal_con_e() { return h$stack[h$sp]; };
 
    more platforms should be added here in the future
 */
-
-var h$isNode = false; // runtime is node.js
-var h$isJvm = false; // runtime is JVM
-var h$isJsShell = false; // runtime is SpiderMonkey jsshell
-var h$isJsCore = false; // runtime is JavaScriptCore jsc
-var h$isBrowser = false; // running in browser or everything else
-
-var h$isGHCJSi = false; // Code is GHCJSi (browser or node)
-
-// load all required node.js modules
-if(typeof process !== 'undefined' && (typeof h$TH !== 'undefined' || (typeof require !== 'undefined' && typeof module !== 'undefined' && module.exports))) {
-    h$isNode = true;
-    // we have to use these names for the closure compiler externs to work
-    var fs = require('fs');
-    var path = require('path');
-    var os = require('os');
-    var child_process = require('child_process');
-    var h$fs = fs;
-    var h$path = path;
-    var h$os = os;
-    var h$child = child_process;
-    var h$process = process;
-    function h$getProcessConstants() {
-      // this is a non-public API, but we need these values for things like file access modes
-      var cs = process['binding']('constants');
-      if(typeof cs.os === 'object' && typeof cs.fs === 'object') {
-        return cs;
-      } else {
-        // earlier node.js versions (4.x and older) have all constants directly in the constants object
-        // construct something that resembles the hierarchy of the object in new versions:
-        return { 'fs': cs
-               , 'crypto': cs
-               , 'os': { 'UV_UDP_REUSEADDR': cs['UV_UDP_REUSEADDR']
-                           , 'errno': cs
-                           , 'signals': cs
-                           }
-               };
-      }
-    }
-    var h$processConstants = h$getProcessConstants();
-} else if(typeof Java !== 'undefined') {
-    h$isJvm = true;
-    this.console = {
-      log: function(s) {
-        java.lang.System.out.print(s);
-      }
-    };
-} else if(typeof snarf !== 'undefined' && typeof print !== 'undefined' && typeof quit !== 'undefined') {
-    h$isJsShell = true;
-    this.console = { log: this.print };
-} else if(typeof numberOfDFGCompiles !== 'undefined' && typeof jscStack !== 'undefined') {
-    h$isJsCore = true;
-} else {
-    h$isBrowser = true;
-}
-if(typeof global !== 'undefined' && global.h$GHCJSi) {
-  h$isGHCJSi = true;
-}
-
-
 function h$getGlobal(that) {
     if(typeof global !== 'undefined') return global;
     return that;
+}
+
+
+// IE 8 doesn't support Date.now(), shim it
+if (!Date.now) {
+  Date.now = function now() {
+    return +(new Date);
+  };
 }
 /*
   set up the google closure library. this is a rather hacky setup
@@ -2561,17 +2509,6 @@ goog.crypt = {};
     function clearImmediate(handle) {
         delete tasksByHandle[handle];
     }
-
-
-    function installNextTickImplementation() {
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            process.nextTick(partiallyApplied(runIfPresent, handle));
-            return handle;
-        };
-    }
-
-
     function canUsePostMessage() {
         // The test against `importScripts` prevents this implementation from being installed inside a web worker,
         // where `global.postMessage` means something completely different and can't be used for this purpose.
@@ -2649,8 +2586,8 @@ goog.crypt = {};
     function installSetTimeoutImplementation() {
         // jsshell doesn't even have setTimeout
 
-        if(typeof setTimeout === 'undefined') setImmediate = function() { return null; };
-        else
+
+
 
           setImmediate = function() {
             var handle = addFromSetImmediateArguments(arguments);
@@ -2665,11 +2602,11 @@ goog.crypt = {};
 
     // Don't get fooled by e.g. browserify environments.
 
-    if ({}.toString.call(global.process) === "[object process]") {
-        // For Node.js before 0.9
-        installNextTickImplementation();
 
-    } else
+
+
+
+
 
        if (canUsePostMessage()) {
         // For non-IE10 modern browsers
@@ -5503,15 +5440,6 @@ function h$gcQuick(t) {
 
 
 function h$gc(t) {
-
-
-
-
-    // fixme, should enable again later when proper CAF management
-    // and retention of the standard handles in GHCJSi work
-    if(h$isGHCJSi) return;
-
-
     if(h$currentThread !== null) throw "h$gc: GC can only be run when no thread is running";
 
 
@@ -6692,71 +6620,10 @@ function h$strerror(err) {
  { h$ret1 = (0); return (h$encodeUtf8("operation unsupported on this platform")); };
     }
 
+    { h$ret1 = (0); return (h$encodeUtf8("unknown error")); };
 
 
-    { h$ret1 = (0); return (h$encodeUtf8(h$errorStrs[err] || "unknown error")); };
 
-}
-
-
-function h$setErrno(e) {
-                               ;
-  var es = e.toString();
-  var getErr = function() {
-      if(es.indexOf('ENOTDIR') !== -1) return 20;
-      if(es.indexOf('ENOENT') !== -1) return 2;
-      if(es.indexOf('EEXIST') !== -1) return 17;
-      if(es.indexOf('ENETUNREACH') !== -1) return 22; // fixme
-      if(es.indexOf('EPERM') !== -1) return 1;
-      if(es.indexOf('EMFILE') !== -1) return 24;
-      if(es.indexOf('EPIPE') !== -1) return 32;
-      if(es.indexOf('EAGAIN') !== -1) return 35;
-      if(es.indexOf('Bad argument') !== -1) return 2; // fixme?
-      throw ("setErrno not yet implemented: " + e);
-
-  }
-  h$errno = getErr();
-}
-
-var h$errorStrs = { 7: "too big"
-                   , CONST_EACCESS: "no access"
-                   , 22: "invalid"
-                   , 9: "bad file descriptor"
-                   , 20: "not a directory"
-                   , 2: "no such file or directory"
-                   , 1: "operation not permitted"
-                   , 17: "file exists"
-                   , 24: "too many open files"
-                   , 32: "broken pipe"
-                   , 35: "resource temporarily unavailable"
-                   }
-
-function h$handleErrno(r_err, f) {
-  try {
-    return f();
-  } catch(e) {
-    h$setErrno(e);
-    return r_err;
-  }
-}
-
-function h$handleErrnoS(r_err, r_success, f) {
-  try {
-    f();
-    return r_success;
-  } catch(e) {
-    h$setErrno(e);
-    return r_err;
-  }
-}
-
-function h$handleErrnoC(err, r_err, r_success, c) {
-    if(err) {
-        h$setErrno(err);
-        c(r_err);
-    } else {
-        c(r_success);
-    }
 }
 
 function h$MD5Init(ctx, ctx_off) {
@@ -8325,16 +8192,6 @@ function h$throwJSException(e) {
 // set up debug logging for the current JS environment/engine
 // browser also logs to <div id="output"> if jquery is detected
 // the various debug tracing options use h$log
-
-var h$glbl;
-function h$getGlbl() { h$glbl = this; }
-h$getGlbl();
-
-
-
-
-
-
 function h$log() {
 
 
@@ -8344,22 +8201,12 @@ function h$log() {
 
 
   try {
-
-    if(h$glbl) {
-      if(h$glbl.console && h$glbl.console.log) {
-        h$glbl.console.log.apply(h$glbl.console,arguments);
-      } else {
-        h$glbl.print.apply(this,arguments);
-      }
-    } else {
-      if(typeof console !== 'undefined') {
-
         console.log.apply(console, arguments);
 
-      } else if(typeof print !== 'undefined') {
-        print.apply(null, arguments);
-      }
-    }
+
+
+
+
 
   } catch(ex) {
     // ignore console.log exceptions (for example for IE9 when console is closed)
@@ -8378,24 +8225,7 @@ function h$collectProps(o) {
 // the first element is the program name
 var h$programArgs;
 
-
-
-if(h$isNode) {
-    h$programArgs = process.argv.slice(1);
-} else if(h$isJvm) {
-    h$programArgs = h$getGlobal(this).arguments.slice(0);
-    h$programArgs.unshift("a.js");
-} else if(h$isJsShell && typeof h$getGlobal(this).scriptArgs !== 'undefined') {
-    h$programArgs = h$getGlobal(this).scriptArgs.slice(0);
-    h$programArgs.unshift("a.js");
-} else if((h$isJsShell || h$isJsCore) && typeof h$getGlobal(this).arguments !== 'undefined') {
-    h$programArgs = h$getGlobal(this).arguments.slice(0);
-    h$programArgs.unshift("a.js");
-} else {
-    h$programArgs = [ "a.js" ];
-}
-
-
+h$programArgs = [ "a.js" ];
 function h$getProgArgv(argc_v,argc_off,argv_v,argv_off) {
                           ;
   var c = h$programArgs.length;
@@ -8425,36 +8255,24 @@ function h$setProgArgv(n, ptr_d, ptr_o) {
 
 function h$getpid() {
 
-  if(h$isNode) return process.id;
+
 
   return 0;
 }
 
 function h$__hscore_environ() {
                                ;
-
-    if(h$isNode) {
-        var env = [], i;
-        for(i in process.env) env.push(i + '=' + process.env[i]);
-        if(env.length === 0) return null;
-        var p = h$newByteArray(4*env.length+1);
-        p.arr = [];
-        for(i=0;i<env.length;i++) p.arr[4*i] = [h$encodeUtf8(env[i]), 0];
-        p.arr[4*env.length] = [null, 0];
-        { h$ret1 = (0); return (p); };
-    }
-
     { h$ret1 = (0); return (null); };
 }
 
 function h$getenv(name, name_off) {
                        ;
 
-    if(h$isNode) {
-        var n = h$decodeUtf8z(name, name_off);
-        if(typeof process.env[n] !== 'undefined')
-            { h$ret1 = (0); return (h$encodeUtf8(process.env[n])); };
-    }
+
+
+
+
+
 
     { h$ret1 = (0); return (null); };
 }
@@ -8474,40 +8292,20 @@ function h$debugBelch2(buf1, buf_offset1, buf2, buf_offset2) {
 
 function h$errorMsg(pat) {
 
-  function stripTrailingNewline(xs) {
-    return xs.replace(/\r?\n$/, "");
-  }
+
+
+
 
   // poor man's vprintf
   var str = pat;
   for(var i=1;i<arguments.length;i++) {
     str = str.replace(/%s/, arguments[i]);
   }
-
-  if(h$isGHCJSi) {
-    // ignore message
-  } else if(h$isNode) {
-    process.stderr.write(str);
-  } else if (h$isJsShell && typeof printErr !== 'undefined') {
-    if(str.length) printErr(stripTrailingNewline(str));
-  } else if (h$isJsShell && typeof putstr !== 'undefined') {
-    putstr(str);
-  } else if (h$isJsCore) {
-    if(str.length) {
- if(h$base_stderrLeftover.val !== null) {
-     debug(h$base_stderrLeftover.val + stripTrailingNewline(str));
-     h$base_stderrLeftover.val = null;
- } else {
-     debug(stripTrailingNewline(str));
- }
-    }
-  } else {
-
     if(typeof console !== 'undefined') {
       console.log(str);
     }
 
-  }
+
 
 }
 
@@ -9399,19 +9197,19 @@ function h$scheduleMainLoop() {
     h$clearScheduleMainLoop();
     if(h$delayed.size() === 0) {
 
-        if(typeof setTimeout !== 'undefined') {
+
 
                                                                                     ;
             h$mainLoopTimeout = setTimeout(h$mainLoop, h$gcInterval);
 
-        }
+
 
         return;
     }
     var now = Date.now();
     var delay = Math.min(Math.max(h$delayed.peekPrio()-now, 0), h$gcInterval);
 
-    if(typeof setTimeout !== 'undefined') {
+
 
         if(delay >= 1) {
                                                                              ;
@@ -9421,7 +9219,7 @@ function h$scheduleMainLoop() {
             h$mainLoopImmediate = setImmediate(h$mainLoop);
         }
 
-    }
+
 
 }
 
@@ -9449,26 +9247,12 @@ function h$startMainLoop() {
                                                     ;
     if(h$running) return;
 
-    if(typeof setTimeout !== 'undefined') {
+
 
         if(!h$mainLoopImmediate) {
             h$clearScheduleMainLoop();
             h$mainLoopImmediate = setImmediate(h$mainLoop);
         }
-
-    } else {
-      while(true) {
-        // the try/catch block appears to prevent a crash with
-        // Safari on iOS 10, even though this path is never taken
-        // in a browser.
-        try {
-          h$mainLoop();
-        } catch(e) {
-          throw e;
-        }
-      }
-    }
-
 }
 var h$busyYield = 500;
 var h$schedQuantum = 25;
@@ -9911,9 +9695,9 @@ function h$main(a) {
   //TRACE_SCHEDULER("sched: starting main thread");
     t.stack[0] = h$doneMain_e;
 
-  if(!h$isBrowser && !h$isGHCJSi) {
-    t.stack[2] = h$baseZCGHCziTopHandlerzitopHandler;
-  }
+
+
+
 
   t.stack[4] = h$ap_1_0;
   t.stack[5] = h$flushStdout;
@@ -9930,15 +9714,15 @@ function h$main(a) {
 
 function h$doneMain() {
 
-  if(h$isGHCJSi) {
-    if(h$currentThread.stack) {
-      global.h$GHCJSi.done(h$currentThread);
-    }
-  } else {
+
+
+
+
+
 
     h$exitProcess(0);
 
-  }
+
 
   h$finishThread(h$currentThread);
   return h$reschedule;
@@ -9954,28 +9738,13 @@ h$ThreadAbortedError.prototype.toString = function() {
 }
 
 function h$exitProcess(code) {
-
-    if(h$isNode) {
- process.exit(code);
-    } else if(h$isJvm) {
-        java.lang.System.exit(code);
-    } else if(h$isJsShell) {
-        quit(code);
-    } else if(h$isJsCore) {
-        if(h$base_stdoutLeftover.val !== null) print(h$base_stdoutLeftover.val);
-        if(h$base_stderrLeftover.val !== null) debug(h$base_stderrLeftover.val);
-        // jsc does not support returning a nonzero value, print it instead
-        if(code !== 0) debug("GHCJS JSC exit status: " + code);
-        quit();
-    } else {
-
         if(h$currentThread) {
             h$finishThread(h$currentThread);
             h$stack = null;
             throw new h$ThreadAbortedError(code);
         }
 
-    }
+
 
 }
 
@@ -27252,28 +27021,17 @@ goog.crypt.Md5.prototype.digest = function() {
 // #define GHCJS_TRACE_IO 1
 function h$base_access(file, file_off, mode, c) {
                            ;
-
-    if(h$isNode) {
-        h$fs.stat(fd, function(err, fs) {
-            if(err) {
-                h$handleErrnoC(err, -1, 0, c);
-            } else {
-                c(mode & fs.mode); // fixme is this ok?
-            }
-        });
-    } else
-
         h$unsupported(-1, c);
 }
 
 function h$base_chmod(file, file_off, mode, c) {
                           ;
 
-    if(h$isNode) {
-        h$fs.chmod(h$decodeUtf8z(file, file_off), mode, function(err) {
-            h$handleErrnoC(err, -1, 0, c);
-        });
-    } else
+
+
+
+
+
 
         h$unsupported(-1, c);
 }
@@ -27299,29 +27057,17 @@ function h$base_dup2(fd, c) {
 
 function h$base_fstat(fd, stat, stat_off, c) {
                          ;
-
-    if(h$isNode) {
-        h$fs.fstat(fd, function(err, fs) {
-            if(err) {
-                h$handlErrnoC(err, -1, 0, c);
-            } else {
-                h$base_fillStat(fs, stat, stat_off);
-                c(0);
-            }
-        });
-    } else
-
         h$unsupported(-1, c);
 }
 
 function h$base_isatty(fd) {
                                  ;
 
-    if(h$isNode) {
-        if(fd === 0) return process.stdin.isTTY?1:0;
-        if(fd === 1) return process.stdout.isTTY?1:0;
-        if(fd === 2) return process.stderr.isTTY?1:0;
-    }
+
+
+
+
+
 
     if(fd === 1 || fd === 2) return 1;
     return 0;
@@ -27329,108 +27075,18 @@ function h$base_isatty(fd) {
 
 function h$base_lseek(fd, pos_1, pos_2, whence, c) {
                           ;
-
-    if(h$isNode) {
-        var p = goog.math.Long.fromBits(pos_2, pos_1), p1;
-        var o = h$base_fds[fd];
-        if(!o) {
-            h$errno = CONST_BADF;
-            c(-1,-1);
-        } else {
-            switch(whence) {
-            case 0: /* SET */
-                o.pos = p.toNumber();
-                c(p.getHighBits(), p.getLowBits());
-                break;
-            case 1: /* CUR */
-                o.pos += p.toNumber();
-                p1 = goog.math.Long.fromNumber(o.pos);
-                c(p1.getHighBits(), p1.getLowBits());
-                break;
-            case 2: /* END */
-                h$fs.fstat(fd, function(err, fs) {
-                    if(err) {
-                        h$setErrno(err);
-                        c(-1,-1);
-                    } else {
-                        o.pos = fs.size + p.toNumber();
-                        p1 = goog.math.Long.fromNumber(o.pos);
-                        c(p1.getHighBits(), p1.getLowBits());
-                    }
-                });
-                break;
-            default:
-                h$errno = 22;
-                c(-1,-1);
-            }
-        }
-    } else {
-
         h$unsupported();
         c(-1, -1);
 
-    }
+
 
 }
 
 function h$base_lstat(file, file_off, stat, stat_off, c) {
                           ;
-
-    if(h$isNode) {
-        h$fs.lstat(h$decodeUtf8z(file, file_off), function(err, fs) {
-            if(err) {
-                h$handleErrnoC(err, -1, 0, c);
-            } else {
-                h$base_fillStat(fs, stat, stat_off);
-                c(0);
-            }
-        });
-    } else
-
         h$unsupported(-1, c);
 }
 function h$base_open(file, file_off, how, mode, c) {
-
-    if(h$isNode) {
-        var flags, off;
-        var fp = h$decodeUtf8z(file, file_off);
-        var acc = how & h$base_o_accmode;
-        // passing a number lets node.js use it directly as the flags (undocumented)
-        if(acc === h$base_o_rdonly) {
-            flags = h$processConstants['fs']['O_RDONLY'];
-        } else if(acc === h$base_o_wronly) {
-            flags = h$processConstants['fs']['O_WRONLY'];
-        } else { // r+w
-            flags = h$processConstants['fs']['O_RDWR'];
-        }
-        off = (how & h$base_o_append) ? -1 : 0;
-        flags = flags | ((how & h$base_o_trunc) ? h$processConstants['fs']['O_TRUNC'] : 0)
-                      | ((how & h$base_o_creat) ? h$processConstants['fs']['O_CREAT'] : 0)
-                      | ((how & h$base_o_excl) ? h$processConstants['fs']['O_EXCL'] : 0)
-                      | ((how & h$base_o_append) ? h$processConstants['fs']['O_APPEND'] : 0);
-        h$fs.open(fp, flags, mode, function(err, fd) {
-            if(err) {
-                h$handleErrnoC(err, -1, 0, c);
-            } else {
-                var f = function(p) {
-                    h$base_fds[fd] = { read: h$base_readFile
-                                       , write: h$base_writeFile
-                                       , close: h$base_closeFile
-                                       , pos: p
-                                     };
-                    c(fd);
-                }
-                if(off === -1) {
-                    h$fs.stat(fp, function(err, fs) {
-                        if(err) h$handleErrnoC(err, -1, 0, c); else f(fs.size);
-                    });
-                } else {
-                    f(0);
-                }
-            }
-        });
-    } else
-
         h$unsupported(-1, c);
 }
 function h$base_read(fd, buf, buf_off, n, c) {
@@ -27445,24 +27101,12 @@ function h$base_read(fd, buf, buf_off, n, c) {
 }
 function h$base_stat(file, file_off, stat, stat_off, c) {
                          ;
-
-    if(h$isNode) {
-        h$fs.stat(h$decodeUtf8z(file, file_off), function(err, fs) {
-            if(err) {
-                h$handlErrnoC(err, -1, 0, c);
-            } else {
-                h$base_fillStat(fs, stat, stat_off);
-                c(0);
-            }
-        });
-    } else
-
         h$unsupported(-1, c);
 }
 function h$base_umask(mode) {
                                    ;
 
-    if(h$isNode) return process.umask(mode);
+
 
     return 0;
 }
@@ -27481,40 +27125,40 @@ function h$base_write(fd, buf, buf_off, n, c) {
 function h$base_ftruncate(fd, pos_1, pos_2, c) {
                               ;
 
-    if(h$isNode) {
-        h$fs.ftruncate(fd, goog.math.Long.fromBits(pos_2, pos_1).toNumber(), function(err) {
-            h$handleErrnoC(err, -1, 0, c);
-        });
-    } else
+
+
+
+
+
 
         h$unsupported(-1, c);
 }
 function h$base_unlink(file, file_off, c) {
                            ;
 
-    if(h$isNode) {
-        h$fs.unlink(h$decodeUtf8z(file, file_off), function(err) {
-            h$handleErrnoC(err, -1, 0, c);
-        });
-    } else
+
+
+
+
+
 
         h$unsupported(-1, c);
 }
 function h$base_getpid() {
                            ;
 
-    if(h$isNode) return process.pid;
+
 
     return 0;
 }
 function h$base_link(file1, file1_off, file2, file2_off, c) {
                          ;
 
-    if(h$isNode) {
-        h$fs.link(h$decodeUtf8z(file1, file1_off), h$decodeUtf8z(file2, file2_off), function(err) {
-            h$handleErrnoC(err, -1, 0, c);
-        });
-    } else
+
+
+
+
+
 
         h$unsupported(-1, c);
 }
@@ -27541,26 +27185,6 @@ function h$base_tcsetattr(attr, val, termios, termios_off) {
 }
 function h$base_utime(file, file_off, timbuf, timbuf_off, c) {
                           ;
-
-    if(h$isNode) {
-        h$fs.fstat(h$decodeUtf8z(file, file_off), function(err, fs) {
-            if(err) {
-                h$handleErrnoC(err, 0, -1, c); // fixme
-            } else {
-                var atime = goog.math.Long.fromNumber(fs.atime.getTime());
-                var mtime = goog.math.Long.fromNumber(fs.mtime.getTime());
-                var ctime = goog.math.Long.fromNumber(fs.ctime.getTime());
-                timbuf.i3[0] = atime.getHighBits();
-                timbuf.i3[1] = atime.getLowBits();
-                timbuf.i3[2] = mtime.getHighBits();
-                timbuf.i3[3] = mtime.getLowBits();
-                timbuf.i3[4] = ctime.getHighBits();
-                timbuf.i3[5] = ctime.getLowBits();
-                c(0);
-            }
-        });
-    } else
-
         h$unsupported(-1, c);
 }
 function h$base_waitpid(pid, stat, stat_off, options, c) {
@@ -27593,26 +27217,6 @@ function h$base_c_s_isdir(mode) {
 function h$base_c_s_isfifo(mode) {
     return 0;
 }
-
-
-function h$base_fillStat(fs, b, off) {
-    if(off%4) throw "h$base_fillStat: not aligned";
-    var o = off>>2;
-    b.i3[o+0] = fs.mode;
-    var s = goog.math.Long.fromNumber(fs.size);
-    b.i3[o+1] = s.getHighBits();
-    b.i3[o+2] = s.getLowBits();
-    b.i3[o+3] = 0; // fixme
-    b.i3[o+4] = 0; // fixme
-    b.i3[o+5] = fs.dev;
-    var i = goog.math.Long.fromNumber(fs.ino);
-    b.i3[o+6] = i.getHighBits();
-    b.i3[o+7] = i.getLowBits();
-    b.i3[o+8] = fs.uid;
-    b.i3[o+9] = fs.gid;
-}
-
-
 // [mode,size1,size2,mtime1,mtime2,dev,ino1,ino2,uid,gid] all 32 bit
 /** @const */ var h$base_sizeof_stat = 40;
 
@@ -27697,157 +27301,6 @@ function h$unlockFile(fd) {
 var h$base_readStdin , h$base_writeStderr, h$base_writeStdout;
 var h$base_closeStdin = null, h$base_closeStderr = null, h$base_closeStdout = null;
 var h$base_readFile, h$base_writeFile, h$base_closeFile;
-
-var h$base_stdin_waiting = new h$Queue();
-var h$base_stdin_chunk = { buf: null
-                           , pos: 0
-                           , processing: false
-                           };
-var h$base_stdin_eof = false;
-var h$base_process_stdin = function() {
-    var c = h$base_stdin_chunk;
-    var q = h$base_stdin_waiting;
-    if(!q.length() || c.processing) return;
-    c.processing = true;
-    if(!c.buf) { c.pos = 0; c.buf = process.stdin.read(); }
-    while(c.buf && q.length()) {
-        var x = q.dequeue();
-        var n = Math.min(c.buf.length - c.pos, x.n);
-        for(var i=0;i<n;i++) {
-            x.buf.u8[i+x.off] = c.buf[c.pos+i];
-        }
-        c.pos += n;
-        x.c(n);
-        if(c.pos >= c.buf.length) c.buf = null;
-        if(!c.buf && q.length()) { c.pos = 0; c.buf = process.stdin.read(); }
-    }
-    while(h$base_stdin_eof && q.length()) q.dequeue().c(0);
-    c.processing = false;
-}
-
-if(h$isNode) {
-    h$base_closeFile = function(fd, fdo, c) {
-        h$fs.close(fd, function(err) {
-            delete h$base_fds[fd];
-            h$handleErrnoC(err, -1, 0, c);
-        });
-    }
-
-    h$base_readFile = function(fd, fdo, buf, buf_offset, n, c) {
-        var pos = typeof fdo.pos === 'number' ? fdo.pos : null;
-                                                                                 ;
-        h$fs.read(fd, new Buffer(n), 0, n, pos, function(err, bytesRead, nbuf) {
-            if(err) {
-                h$setErrno(err);
-                c(-1);
-            } else {
-                for(var i=bytesRead-1;i>=0;i--) buf.u8[buf_offset+i] = nbuf[i];
-                if(typeof fdo.pos === 'number') fdo.pos += bytesRead;
-                c(bytesRead);
-            }
-        });
-    }
-
-    h$base_readStdin = function(fd, fdo, buf, buf_offset, n, c) {
-                              ;
-        h$base_stdin_waiting.enqueue({buf: buf, off: buf_offset, n: n, c: c});
-        h$base_process_stdin();
-    }
-
-    h$base_closeStdin = function(fd, fdo, c) {
-                               ;
-        // process.stdin.close(); fixme
-        c(0);
-    }
-
-    h$base_writeFile = function(fd, fdo, buf, buf_offset, n, c) {
-        var pos = typeof fdo.pos === 'number' ? fdo.pos : null;
-                                                                                  ;
-        var nbuf = new Buffer(n);
-        for(var i=0;i<n;i++) nbuf[i] = buf.u8[i+buf_offset];
-        if(typeof fdo.pos === 'number') fdo.pos += n;
-        h$fs.write(fd, nbuf, 0, n, pos, function(err, bytesWritten) {
-                                           ;
-            if(err) {
-                h$setErrno(err);
-                if(typeof fdo.pos === 'number') fdo.pos -= n;
-                if(h$errno === 35)
-                    setTimeout(function() { h$base_writeFile(fd, fdo, buf, buf_offset, n, c); }, 20);
-                else c(-1);
-            } else {
-                if(typeof fdo.pos === 'number') fdo.pos += bytesWritten - n;
-                c(bytesWritten);
-            }
-        });
-    }
-
-    h$base_writeStdout = function(fd, fdo, buf, buf_offset, n, c) {
-                                ;
-        h$base_writeFile(1, fdo, buf, buf_offset, n, c);
-    }
-
-    h$base_closeStdout = function(fd, fdo, c) {
-                                ;
- // not actually closed, fixme?
-        c(0);
-    }
-
-    h$base_writeStderr = function(fd, fdo, buf, buf_offset, n, c) {
-                                ;
-        h$base_writeFile(2, fdo, buf, buf_offset, n, c);
-    }
-
-    h$base_closeStderr = function(fd, fdo, c) {
-                                ;
- // not actually closed, fixme?
-        c(0);
-    }
-
-    process.stdin.on('readable', h$base_process_stdin);
-    process.stdin.on('end', function() { h$base_stdin_eof = true; h$base_process_stdin(); });
-
-} else if (h$isJsShell) {
-    h$base_readStdin = function(fd, fdo, buf, buf_offset, n, c) {
-        c(0);
-    }
-    h$base_writeStdout = function(fd, fdo, buf, buf_offset, n, c) {
-        putstr(h$decodeUtf8(buf, n, buf_offset));
-        c(n);
-    }
-    h$base_writeStderr = function(fd, fdo, buf, buf_offset, n, c) {
-        printErr(h$decodeUtf8(buf, n, buf_offset));
-        c(n);
-    }
-} else if(h$isJsCore) {
-    h$base_readStdin = function(fd, fdo, buf, buf_offset, n, c) {
- c(0);
-    }
-    var h$base_stdoutLeftover = { f: print, val: null };
-    var h$base_stderrLeftover = { f: debug, val: null };
-    var h$base_writeWithLeftover = function(buf, n, buf_offset, c, lo) {
- var lines = h$decodeUtf8(buf, n, buf_offset).split(/\r?\n/);
- if(lines.length === 1) {
-     if(lines[0].length) {
-  if(lo.val !== null) lo.val += lines[0];
-  else lo.val = lines[0];
-     }
- } else {
-            lo.f(((lo.val !== null) ? lo.val : '') + lines[0]);
-     for(var i=1;i<lines.length-1;i++) lo.f(lines[i]);
-     if(lines[lines.length-1].length) lo.val = lines[lines.length-1];
-     else lo.val = null;
- }
- c(n);
-    }
-    h$base_writeStdout = function(fd, fdo, buf, buf_offset, n, c) {
- h$base_writeWithLeftover(buf, n, buf_offset, c, h$base_stdoutLeftover);
-    }
-    h$base_writeStderr = function(fd, fdo, buf, buf_offset, n, c) {
- // writing to stderr not supported, write to stdout
- h$base_writeWithLeftover(buf, n, buf_offset, c, h$base_stderrLeftover);
-    }
-} else { // browser / fallback
-
     h$base_readStdin = function(fd, fdo, buf, buf_offset, n, c) {
         c(0);
     }
@@ -27860,7 +27313,7 @@ if(h$isNode) {
         c(n);
     }
 
-}
+
 
 
 var h$base_stdin_fd = { read: h$base_readStdin, close: h$base_closeStdin };

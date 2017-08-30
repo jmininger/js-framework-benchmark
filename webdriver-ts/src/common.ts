@@ -42,7 +42,7 @@ export let frameworks = [
 
     f("halogen-v2.1.0-non-keyed", false),
 
-    f("miso-non-official-v0.4.0.0-non-keyed", false),
+//    f("miso-non-official-v0.4.0.0-non-keyed", false),
 
     f("preact-v7.1.0-keyed", true),
 
