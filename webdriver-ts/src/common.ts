@@ -46,7 +46,7 @@ export let frameworks = [
 
     f("preact-v7.1.0-keyed", true),
 
-    f("pux-v11.0.0-non-keyed", true),
+    f("pux-v11.0.0-non-keyed", false),
 
     f("react-lite-v0.15.30-keyed", true),
     f("react-v15.5.4-keyed", true),
@@ -58,7 +58,7 @@ export let frameworks = [
 
     f("reflex-dom-v0.4-keyed", true, {uri: "reflex-dom-v0.4-keyed/dist"}),
 
-    f("thermite-v4.0.0-non-keyed", true),
+    f("thermite-v4.0.0-non-keyed", false),
 
     f("vanillajs-non-keyed", false),
     f("vanillajs-keyed", true),
