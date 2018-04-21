@@ -1,0 +1,8 @@
+install:
+  - ps: Install-Product node 8
+  - npm install
+  - ps: Start-Process npm start -NoNewWindow
+  - npm run build
+  - npm run check
+
+build: off
