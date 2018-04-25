@@ -18,5 +18,6 @@ jobs:
 
           npm install
           npm start &
-          npm run build
+          lerna exec -- npm install
+          lerna exec -- npm run build-prod
           npm run check
