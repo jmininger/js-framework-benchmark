@@ -4,9 +4,9 @@
   "description": "Simple Benchmark for Javascript client side rendering",
   "scripts": {
     "clean": "node cleanup.js",
-    "build": "lerna exec -- npm install && npm run build-prod"
-    "build-prod": "lerna exec -- npm install && npm run build-prod"
-    "compile": "lerna exec -- npm install && npm run build-prod"
+    "build": "lerna exec -- npm install && npm run build-prod",
+    "build-prod": "lerna exec -- npm install && npm run build-prod",
+    "compile": "lerna exec -- npm install && npm run build-prod",
     "start": "http-server -c-1 .",
     "selenium": "cd webdriver-ts && npm run selenium && npm run results",
     "check": "cd webdriver-ts && npm run selenium -- --count 1 --exitOnError true --fork false"
