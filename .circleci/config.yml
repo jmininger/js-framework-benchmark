@@ -16,9 +16,7 @@ jobs:
           source $NVM_DIR/nvm.sh
           nvm install v8.9.1
 
-          npm install --global lerna #shouldn't need this
           npm install
           npm start &
-          lerna exec -- npm install
-          lerna exec -- npm run build-prod
-          npm run check
+          npm run build
+#          npm run check
