@@ -14,8 +14,8 @@ _.each(fs.readdirSync('.'), function(name) {
 	if(!name.startsWith(".") && fs.statSync(name).isDirectory() && excludedDirectories.indexOf(name)==-1 && fs.existsSync(path.join(name, "package.json"))) {
 		if (!build && name.startsWith(restartWithFramework)) build = true;
 		if (build) {
-			console.log("*** Executing npm install in "+name);
-            exec('npm install', {
+			console.log("*** Executing pnpm i in "+name);
+            exec('pnpm i', {
 				cwd: name,
 				stdio: 'inherit'
 			});
