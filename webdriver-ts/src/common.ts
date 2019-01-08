@@ -20,6 +20,7 @@ export interface ErrorsAndWarning {
 export interface BenchmarkDriverOptions {
     headless?: boolean;
     chromeBinaryPath?: string;
+    chromeDriverPath?: string;
 }
 
 export interface BenchmarkOptions extends BenchmarkDriverOptions {

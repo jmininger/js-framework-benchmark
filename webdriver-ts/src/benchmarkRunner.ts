@@ -60,6 +60,7 @@ async function runBench(frameworkNames: string[], benchmarkNames: string[], dir:
             port: config.PORT.toFixed(),
             headless: args.headless,
             chromeBinaryPath: args.chromeBinary,
+            chromeDriverPath: args.chromeDriver,
             numIterationsForAllBenchmarks: config.REPEAT_RUN,
             numIterationsForStartupBenchmark: config.REPEAT_RUN_STARTUP
         }

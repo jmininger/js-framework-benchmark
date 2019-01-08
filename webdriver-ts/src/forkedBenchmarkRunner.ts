@@ -12,7 +12,7 @@ import * as path from 'path';
 import {JSONResult, config, FrameworkData, BenchmarkError, ErrorsAndWarning, BenchmarkOptions, BenchmarkDriverOptions} from './common'
 import * as R from 'ramda';
 
-var chromedriver:any = require('chromedriver');
+// var chromedriver:any = require('chromedriver');
 var jStat:any = require('jstat').jStat;
 
 promise.USE_PROMISE_MANAGER = false;
@@ -342,11 +342,11 @@ function buildDriver(benchmarkOptions: BenchmarkDriverOptions) {
     });
 
     // Do the following lines really cause https://github.com/krausest/js-framework-benchmark/issues/303 ?
-    // let service = new chrome.ServiceBuilder(args.chromeDriver).build();
-    // return chrome.Driver.createSession(options, service);
+    let service = new chrome.ServiceBuilder(benchmarkOptions.chromeDriverPath);
     return new Builder()
         .forBrowser('chrome')
         .setChromeOptions(options)
+        .setChromeService(service)
         .build();
 }
 
